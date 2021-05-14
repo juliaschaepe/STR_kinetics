@@ -1,0 +1,14 @@
+# STR Kinetics Gillespie Simulation
+![image](state_diagram.png)
+## Scaling up computation
+1) Parallelizing jobs to run sensitivity analysis
+  - Could rewrite gillespie to go to just first TF bound to motif to get time to first passage and that would significantly cut down on time but would not get the metrics for mean occupancy etc.
+  
+## Fixing reaction rates & assumptions
+1) TF-DNA 2D sliding
+2) Kd_in_out should be the ratio between the antenna and nucleus volume
+3) Antenna volume
+- This volume ratio of 1/100th of nucleus volume does not match up with the number of BP in the antenna. Two ways of thinking about this: radius of gyration of DNA, how much DNA occupies a certain volume. 
+4) Kinetics of TF-DNA between random and repeats
+- Need to update to use the ratio from the 2s kinetic measurements plot. ~0.08 1/Ms off rate for motif+repeats and ~0.095 1/Ms off rate for motif+random.
+5) Multipling by the concentration of DNA in certain gillespie reactions

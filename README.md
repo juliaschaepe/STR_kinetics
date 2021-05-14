@@ -13,3 +13,4 @@
 4) Kinetics of TF-DNA between random and repeats
 - Need to update to use the ratio from the 2s kinetic measurements plot. ~0.08 1/Ms off rate for motif+repeats and ~0.095 1/Ms off rate for motif+random.
 5) Multipling by the concentration of DNA in certain gillespie reactions
+- This feels fine to do.

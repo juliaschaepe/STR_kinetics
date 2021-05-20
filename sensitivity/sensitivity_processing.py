@@ -24,21 +24,27 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	ax = fig.add_subplot(131)
 	sns.heatmap(np.mean(first_passage, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(degenerate/core)', fontsize=18)
-	ax.set_xlabel('# degenerate sites', fontsize=18)
+	ax.set_xlabel(target, fontsize=18)
+	ax.set_yticks(run_vars)
+	ax.set_yticklabels(run_vars, rotation=0)
 	ax.tick_params(labelsize=14)
 	ax.set_title('First passage time', fontsize=20)
 
 	ax = fig.add_subplot(132)
 	sns.heatmap(np.mean(mean_occupancy_mot, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(degenerate/core)', fontsize=18)
-	ax.set_xlabel('# degenerate sites', fontsize=18)
+	ax.set_xlabel(target, fontsize=18)
+	ax.set_yticks(run_vars)
+	ax.set_yticklabels(run_vars, rotation=0)
 	ax.tick_params(labelsize=14)
 	ax.set_title('Mean consensus occupancy', fontsize=20)
 
 	ax = fig.add_subplot(133)
 	sns.heatmap(np.mean(mean_occupancy_deg, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(degenerate/core)', fontsize=18)
-	ax.set_xlabel('# degenerate sites', fontsize=18)
+	ax.set_xlabel(target, fontsize=18)
+	ax.set_yticks(run_vars)
+	ax.set_yticklabels(run_vars, rotation=0)
 	ax.tick_params(labelsize=14)
 	ax.set_title('Mean flanks occupancy', fontsize=20)
 	plt.savefig(target + '/' + target + '_heatmaps.pdf', dpi=300)
@@ -58,11 +64,34 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	ax.plot(run_vars, pearson_arr, marker='o', ls='')
 	ax.legend(['Spearman rho', 'Pearson R'])
 	ax.set_xscale('log')
-	ax.set_xlabel('# degenerate sites', fontsize=18)
+	ax.set_xlabel(target, fontsize=18)
 	ax.set_ylabel('correlation', fontsize=18)
 	ax.tick_params()
 	fig.tight_layout()
 	plt.savefig(target + '/' + target + '_correlation.pdf', dpi=300)
+
+
+def get_run_vars(target):
+	if target == 'simulation':
+		# TODO: this is not right
+		return np.array([1, 10, 100, 500, 1000])
+	if target == 'n_deg_sites':
+		return np.array([1, 10, 100, 500, 1000])
+	if target == 'core_affinity':
+		return np.geomspace(1e-10, 1e-6, 10)
+	if target == 'core_kinetics':
+		return np.geomspace(1e-3, 1, 10)
+	if target == 'flank_kinetics':
+		return np.geomspace(1e-2, 1, 10)
+	if target == 'n_TF':
+		return np.array([50, 100, 200, 500, 1000, 2000, 5000])
+	if target == 'sliding_kinetics':
+		return np.geomspace(5, 1000, 10)
+	if target == 'diffusion_kinetics':
+		# TODO: this needs to be updated
+		return np.geomspace(1e-5,1e-2, 10)
+	if target == 'DNA_concentration':
+		return np.geomspace(1e-7, 1e-3, 10)
 
 
 def main():
@@ -75,7 +104,8 @@ def main():
 	# 'sliding_kinetics', 'diffusion_kinetics', 'DNA_concentration'
 	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = load_arrays(args.num_jobs, args.target)
 	factor = np.geomspace(1e-3, 1, num=10)
-	run_vars = np.array([1, 10, 100, 500, 1000])
+
+	run_vars = get_run_vars(args.target)
 	sensitivity_plot(args.target, args.num_jobs, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_deg)
 
 if __name__ == "__main__":

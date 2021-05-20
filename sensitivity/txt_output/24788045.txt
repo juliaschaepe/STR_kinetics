@@ -1,0 +1,16 @@
+0
+DNA_concentration
+Traceback (most recent call last):
+  File "../sensitivity_analysis.py", line 330, in <module>
+    main()
+  File "../sensitivity_analysis.py", line 324, in main
+    DNA_concentration_sensitivity(args.target, args.run_num, args.y0, factor)
+  File "../sensitivity_analysis.py", line 266, in DNA_concentration_sensitivity
+    mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+  File "../sensitivity_analysis.py", line 107, in compute_mean_occupancy
+    return np.average(simulation_data[:-1,target_idx], weights = simulation_data[1:, dt_index])
+  File "<__array_function__ internals>", line 6, in average
+  File "/home/users/jschaepe/.local/lib/python3.6/site-packages/numpy/lib/function_base.py", line 410, in average
+    "Weights sum to zero, can't be normalized")
+ZeroDivisionError: Weights sum to zero, can't be normalized
+Job finished

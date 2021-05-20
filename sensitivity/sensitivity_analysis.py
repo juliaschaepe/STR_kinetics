@@ -118,13 +118,12 @@ def initialize_storage(n_factor, n_var):
     return np.zeros((n_factor, n_var)), np.zeros((n_factor, n_var)), np.zeros((n_factor, n_var)), np.zeros((n_factor, n_var))
 
 
-def n_deg_sites_sensitivity(target, run_num):
-	factor = np.geomspace(1e-3, 1, num=10)
+def n_deg_sites_sensitivity(target, run_num, y0, factor):
 	n_deg = np.array([1, 10, 100, 500, 1000])
 	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(n_deg))
 	for i, ratio in enumerate(factor):
 		for j, n in enumerate(n_deg):
-			y0 = [500, 0, 0, 0, 1, n]
+			y0[-1] = n
 			k_array = get_k_array(n, ratio)
 			sim_data = simulate_TFsearch(1e3, y0, k_array)
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
@@ -134,41 +133,197 @@ def n_deg_sites_sensitivity(target, run_num):
 				motif_bound = np.where(sim_data[:, 3] > 0)[0]
 				first_passage[i, j] = sim_data[motif_bound[0], 0]
 			except:
+				first_passage[i, j] = 2e3
 				continue
 	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant)
 
 
+def core_affinity_sensitivity(target, run_num, y0, factor):
+	core_affinity = np.geomspace(1e-10, 1e-6, 10)
+	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(core_affinity))
+	for i, ratio in enumerate(factor):
+		for j, Kd in enumerate(core_affinity):
+			k_array = get_k_array(100, ratio, core_koff=Kd)
+			sim_data = simulate_TFsearch(1e3, y0, k_array)
+			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+			mean_occupancy_deg[i, j] = compute_mean_occupancy(sim_data, 4, 0)
+			mean_occupancy_ant[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
+			try:
+				motif_bound = np.where(sim_data[:, 3] > 0)[0]
+				first_passage[i, j] = sim_data[motif_bound[0], 0]
+			except:
+				first_passage[i, j] = 2e3
+				continue
+	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant)
+
+def core_kinetics_sensitivity(target, run_num, y0, factor):
+	core_koff = np.geomspace(1e-3, 1, 10)
+	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(core_koff))
+	for i, ratio in enumerate(factor):
+		for j, koff in enumerate(core_koff):
+			k_array = get_k_array(100, ratio, core_koff=koff)
+			sim_data = simulate_TFsearch(1e3, y0, k_array)
+			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+			mean_occupancy_deg[i, j] = compute_mean_occupancy(sim_data, 4, 0)
+			mean_occupancy_ant[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
+			try:
+				motif_bound = np.where(sim_data[:, 3] > 0)[0]
+				first_passage[i, j] = sim_data[motif_bound[0], 0]
+			except:
+				first_passage[i, j] = 2e3
+				continue
+	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg,
+				mean_occupancy_ant)
+
+def flank_kinetics_sensitivity(target, run_num, y0, factor):
+	flank_koff = np.geomspace(1e-2, 1, 10)
+	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(flank_koff))
+	for i, ratio in enumerate(factor):
+		for j, koff in enumerate(flank_koff):
+			k_array = get_k_array(100, ratio, flank_koff=koff)
+			sim_data = simulate_TFsearch(1e3, y0, k_array)
+			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+			mean_occupancy_deg[i, j] = compute_mean_occupancy(sim_data, 4, 0)
+			mean_occupancy_ant[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
+			try:
+				motif_bound = np.where(sim_data[:, 3] > 0)[0]
+				first_passage[i, j] = sim_data[motif_bound[0], 0]
+			except:
+				first_passage[i, j] = 2e3
+				continue
+	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg,
+					mean_occupancy_ant)
+
+def n_TF_sensitivity(target, run_num, y0, factor):
+	TF_number = np.array([50, 100, 200, 500, 1000, 2000, 5000])
+	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(TF_number))
+	for i, ratio in enumerate(factor):
+		for j, n_TF in enumerate(TF_number):
+			k_array = get_k_array(100, ratio)
+			y0[0] = n_TF
+			sim_data = simulate_TFsearch(1e3, y0, k_array)
+			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+			mean_occupancy_deg[i, j] = compute_mean_occupancy(sim_data, 4, 0)
+			mean_occupancy_ant[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
+			try:
+				motif_bound = np.where(sim_data[:, 3] > 0)[0]
+				first_passage[i, j] = sim_data[motif_bound[0], 0]
+			except:
+				first_passage[i, j] = 2e3
+				continue
+	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg,
+					mean_occupancy_ant)
+
+def sliding_kinetics_sensitivity(target, run_num, y0, factor):
+	velocity_x_probability = np.geomspace(5, 1000, 10)
+	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(velocity_x_probability))
+
+	for i, ratio in enumerate(factor):
+		for j, vxpb in enumerate(velocity_x_probability):
+			k_array = get_k_array(100, ratio, velocity_prob=vxpb)
+			sim_data = simulate_TFsearch(1e3, y0, k_array)
+			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+			mean_occupancy_deg[i, j] = compute_mean_occupancy(sim_data, 4, 0)
+			mean_occupancy_ant[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
+			try:
+				motif_bound = np.where(sim_data[:, 3] > 0)[0]
+				first_passage[i, j] = sim_data[motif_bound[0], 0]
+			except:
+				first_passage[i, j] = 2e3
+				continue
+	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg,
+					mean_occupancy_ant)
+
+def diffusion_kinetics_sensitivity(target, run_num, y0, factor):
+	# TODO: this needs to be updated
+	diff_3D_arr = np.geomspace(1e-5,1e-2, 10)
+	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(diff_3D_arr))
+	for i, ratio in enumerate(factor):
+		for j, d in enumerate(diff_3D_arr):
+			k_array = get_k_array(100, ratio, tf_diffusion=d)
+			sim_data = simulate_TFsearch(1e3, y0, k_array)
+			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+			mean_occupancy_deg[i, j] = compute_mean_occupancy(sim_data, 4, 0)
+			mean_occupancy_ant[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
+			try:
+				motif_bound = np.where(sim_data[:, 3] > 0)[0]
+				first_passage[i, j] = sim_data[motif_bound[0], 0]
+			except:
+				first_passage[i, j] = 2e3
+				continue
+	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg,
+					mean_occupancy_ant)
+
+def DNA_concentration_sensitivity(target, run_num, y0, factor):
+	DNA_conc_arr = np.geomspace(1e-7, 1e-3, 10)
+	first_passage, mean_occupancy_mot, mean_occupancy_deg, mean_occupancy_ant = initialize_storage(len(factor), len(DNA_conc_arr))
+
+	for i, ratio in enumerate(factor):
+		for j, DNA_conc in enumerate(DNA_conc_arr):
+			k_array = get_k_array(100, ratio, DNA=DNA_conc)
+			y0 = [100, 0, 0, 0, 1, 100]
+			sim_data = simulate_TFsearch(1e3, y0, k_array, DNA=DNA_conc)
+			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
+			mean_occupancy_deg[i, j] = compute_mean_occupancy(sim_data, 4, 0)
+			mean_occupancy_ant[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
+			try:
+				motif_bound = np.where(sim_data[:, 3] > 0)[0]
+				first_passage[i, j] = sim_data[motif_bound[0], 0]
+			except:
+				first_passage[i, j] = 2e3
+				continue
+	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_deg,
+					mean_occupancy_ant)
+
+def simulation(target, run_num, y0):
+	factor = np.geomspace(1e-4, 10)
+	first_passage_mot = np.zeros(len(factor))
+	first_passage_ant = np.zeros(len(factor))
+	mean_occupancy_mot = np.zeros(len(factor))
+	mean_occupancy_deg = np.zeros(len(factor))
+	mean_occupancy_ant = np.zeros(len(factor))
+
+	for i in tqdm.tqdm(range(n_rep), miniters=50):
+		for j, ratio in enumerate(factor):
+			k_array = get_k_array(100, ratio)
+			sim_data = simulate_TFsearch(1e3, y0, k_array, frac_DNA=1 / 100)
+			# TODO: this needs to be decided
+
+	np.save(target + '/simulation_output/firstpassage_mot_' + run_num + '.npy', first_passage_mot)
+	np.save(target + '/simulation_output/firstpassage_ant_' + run_num + '.npy', first_passage_ant)
+	np.save(target + '/simulation_output/mean_occupancy_mot_' + run_num + '.npy', mean_occupancy_mot)
+	np.save(target + '/simulation_output/mean_occupancy_deg_' + run_num + '.npy', mean_occupancy_deg)
+	np.save(target + '/simulation_output/mean_occupancy_ant_' + run_num + '.npy', mean_occupancy_ant)
 
 def main():
 	parser = argparse.ArgumentParser(description='Get run number and sensitivity analysis target')
 	parser.add_argument('run_num', type=str, help='run number')
 	parser.add_argument('target', type=str, help='sensitivity analysis target variable')
+	parser.add_argument("--y0", nargs="+", default=[500, 0, 0, 0, 1, 100])
 	args = parser.parse_args()
-
+	factor = np.geomspace(1e-3, 1, num=10)
 	# options for targets: 'n_deg_sites', 'core_affinity', 'core_kinetics', 'flank_kinetics', 'n_TF'
 	# 'sliding_kinetics', 'diffusion_kinetics', 'DNA_concentration'
-
+	if args.target == 'simulation':
+		simulation(args.target, args.run_num, args.y0)
 	if args.target == 'n_deg_sites':
-		n_deg_sites_sensitivity(args.target, args.run_num)
-	# these options need to be implemented
-	# if args.target == 'core_affinity':
-	# 	core_affinity_sensitivity(args.run_num)
-	# if args.target == 'core_kinetics':
-	# 	core_kinetics_sensitivity(args.run_num)
-	# if args.target == 'flank_kinetics':
-	# 	flank_kinetics_sensitivity(args.run_num)
-	# if args.target == 'n_TF':
-	# 	n_TF_sensitivity(args.run_num)
-	# if args.target == 'sliding_kinetics':
-	# 	sliding_kinetics_sensitivity(args.run_num)
-	# if args.target == 'diffusion_kinetics':
-	# 	diffusion_kinetics_sensitivity(args.run_num)
-	# if args.target == 'DNA_concentration':
-	# 	DNA_concentration_sensitivity(args.run_num)
+		n_deg_sites_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'core_affinity':
+		core_affinity_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'core_kinetics':
+		core_kinetics_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'flank_kinetics':
+		flank_kinetics_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'n_TF':
+		n_TF_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'sliding_kinetics':
+		sliding_kinetics_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'diffusion_kinetics':
+		diffusion_kinetics_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'DNA_concentration':
+		DNA_concentration_sensitivity(args.target, args.run_num, args.y0, factor)
 
 	print('Run completed')
-
-
 
 
 if __name__ == "__main__":

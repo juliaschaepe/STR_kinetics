@@ -1,0 +1,4 @@
+24
+core_affinity
+Run completed
+Job finished

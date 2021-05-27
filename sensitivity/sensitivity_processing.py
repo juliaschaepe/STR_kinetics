@@ -24,7 +24,7 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	fig = plt.figure(figsize=(20, 6))
 	factor = np.around(factor, 3)
 	ax = fig.add_subplot(131)
-	sns.heatmap(np.mean(first_passage, axis=0), norm=LogNorm(), xticklabels=run_vars)
+	sns.heatmap(np.mean(first_passage, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
 	ax.set_xticklabels(run_vars, rotation=45)
@@ -35,7 +35,7 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	ax.set_title('First passage time', fontsize=20)
 
 	ax = fig.add_subplot(132)
-	sns.heatmap(np.mean(mean_occupancy_mot, axis=0), norm=LogNorm(), xticklabels=run_vars)
+	sns.heatmap(np.mean(mean_occupancy_mot, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
 	ax.set_yticklabels(factor, rotation=0)
@@ -46,7 +46,7 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	ax.set_title('Mean consensus occupancy', fontsize=20)
 
 	ax = fig.add_subplot(133)
-	sns.heatmap(np.mean(mean_occupancy_flanks, axis=0), norm=LogNorm(), xticklabels=run_vars)
+	sns.heatmap(np.mean(mean_occupancy_flanks, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
 	ax.set_yticklabels(factor, rotation=0)

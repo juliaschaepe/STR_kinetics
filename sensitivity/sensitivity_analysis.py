@@ -3,7 +3,7 @@ import argparse
 import tqdm
 
 # returns kinetic parameters for gillespie simulation
-def get_k_array(n_flanks, factor, core_affinity=1e-7, core_koff=0.01, koff_factor=0.85,
+def get_k_array(n_flanks, factor, core_affinity=1e-7, core_koff=0.01, flank_koff=5,
 				velocity_prob=1000 / 7, tf_diffusion=10e-7 / 100):
 
 	nuc_vol = 3e-15
@@ -22,7 +22,7 @@ def get_k_array(n_flanks, factor, core_affinity=1e-7, core_koff=0.01, koff_facto
 	k32 = core_koff  # source: MITOMI data - this is koff, 1/s
 	k23 = k32 / Kd_23  # detailed balance - this is kon, 1/Ms
 
-	k42 = core_koff * koff_factor  # source: MITOMI data - this is koff, 1/s
+	k42 = flank_koff  # source: MITOMI data - this is koff, 1/s
 	k24 = k42 / Kd_24  # detailed balance - this is kon, 1/Ms
 
 	k43 = velocity_prob / (n_flanks / 2)  # this might need to be re-evaluated, 1/s
@@ -268,26 +268,25 @@ def simulation(target, run_num, y0):
 	n_deg_sites = 100
 	sim_time = 1e3
 	max_time = 1e5
-	first_passage_mot = np.zeros(len(factor))
-	first_passage_local = np.zeros(len(factor))
-	mean_occupancy_mot = np.zeros(len(factor))
-	mean_occupancy_flanks = np.zeros(len(factor))
-	mean_occupancy_local = np.zeros(len(factor))
+	first_passage = np.zeros((int(run_num), len(factor)))
+	mean_occupancy_mot = np.zeros((int(run_num), len(factor)))
+	mean_occupancy_flanks = np.zeros((int(run_num), len(factor)))
+	mean_occupancy_local = np.zeros((int(run_num), len(factor)))
 
-	for i in tqdm.tqdm(range(run_num), miniters=50):
+	for i in tqdm.tqdm(range(int(run_num)), miniters=50):
 		for j, ratio in enumerate(factor):
 			k_array = get_k_array(n_deg_sites, ratio)
 			sim_data, first_passage_time = simulate_tf_search(sim_time, max_time, y0, k_array)
-			first_passage_mot[i,j] = first_passage_time
+			first_passage[i,j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, 3, 0)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, 4, 0)
 			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, 3, 0, 4)
 
-	np.save(target + '/simulation_output/first_passage_' + run_num + '.npy', first_passage_mot)
+	np.save('simulation_output/first_passage_' + run_num + '.npy', first_passage)
 	# np.save(target + '/simulation_output/first_passage_local_' + run_num + '.npy', first_passage_local)
-	np.save(target + '/simulation_output/mean_occupancy_mot_' + run_num + '.npy', mean_occupancy_mot)
-	np.save(target + '/simulation_output/mean_occupancy_flanks_' + run_num + '.npy', mean_occupancy_flanks)
-	np.save(target + '/simulation_output/mean_occupancy_local_' + run_num + '.npy', mean_occupancy_local)
+	np.save('simulation_output/mean_occupancy_mot_' + run_num + '.npy', mean_occupancy_mot)
+	np.save('simulation_output/mean_occupancy_flanks_' + run_num + '.npy', mean_occupancy_flanks)
+	np.save('simulation_output/mean_occupancy_local_' + run_num + '.npy', mean_occupancy_local)
 
 
 # parses input and runs appropriate simulation or sensitivity analysis
@@ -295,7 +294,7 @@ def main():
 	parser = argparse.ArgumentParser(description='Get run number and sensitivity analysis target')
 	parser.add_argument('run_num', type=str, help='run number')
 	parser.add_argument('target', type=str, help='sensitivity analysis target variable')
-	parser.add_argument("--y0", nargs="+", default=[500, 0, 0, 0, 1, 100])
+	parser.add_argument("--y0", nargs="+", default=[1000, 0, 0, 0, 1, 100])
 	args = parser.parse_args()
 	factor = np.geomspace(1e-3, 1, num=10)
 	# options for targets: 'n_flanks', 'core_affinity', 'core_kinetics', 'flank_kinetics', 'n_TF'
@@ -324,3 +323,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
+                                            

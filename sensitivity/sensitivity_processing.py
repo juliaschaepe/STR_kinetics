@@ -81,6 +81,52 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	plt.savefig(target + '/' + target + '_correlation.pdf', dpi=300)
 
 
+def simulation_plot(target, run_num):
+	first_passage = np.load(target + '/simulation_output/first_passage_' + str(run_num) + '.npy')
+	mean_occupancy_mot = np.load(target + '/simulation_output/mean_occupancy_mot_' + str(run_num) + '.npy')
+	mean_occupancy_flanks = np.load(target + '/simulation_output/mean_occupancy_flanks_' + str(run_num) + '.npy')
+	mean_occupancy_local = np.load(target + '/simulation_output/mean_occupancy_local_' + str(run_num) + '.npy')
+
+	fig = plt.figure(figsize=(18, 10))
+	factor = np.geomspace(1e-4, 10)
+	n_rep = 100
+	ax = fig.add_subplot(111)
+	l1 = ax.errorbar(x=factor, y=np.median(first_passage, axis=0),
+					 yerr=np.std(first_passage, axis=0) / np.sqrt(run_num), marker='o',
+					 color='k')
+	ax.set_xscale('log')
+	ax.set_xlim(9e-4)
+	ax.set_ylim(-50, 2000)
+	ax.set_ylabel('time (sec)', fontsize=20)
+	ax.set_xlabel('ratio of affinity (flanks/core)', fontsize=20)
+	ax.tick_params(labelsize=14)
+
+	ax1 = ax.twinx()
+	l2 = ax1.errorbar(x=factor, y=np.median(mean_occupancy_mot, axis=0),
+					  yerr=np.std(mean_occupancy_mot, axis=0) / np.sqrt(run_num), marker='o',
+					  color='C1')
+	l3 = ax1.errorbar(x=factor, y=np.median(mean_occupancy_local, axis=0),
+					  yerr=np.std(mean_occupancy_local, axis=0) / np.sqrt(run_num), marker='o',
+					  color='C0')
+	l4 = ax1.errorbar(x=factor, y=np.median(mean_occupancy_flanks, axis=0),
+					  yerr=np.std(mean_occupancy_flanks, axis=0) / np.sqrt(run_num), marker='o',
+					  color='C2')
+
+	# highlight repeat and random regions for affinity ratios
+	l5 = plt.axvspan(9e-3, 11e-3, color='black', alpha=0.3)
+	l6 = plt.axvspan(9e-2, 11e-2, color='red', alpha=0.3)
+	ax1.set_ylabel('mean occupancy (# TFs)', fontsize=20)
+	ax1.tick_params(labelsize=14)
+
+	ax1.legend((l1, l2, l3, l4, l5, l6),
+			   ['first passage', 'mean occupancy on motif', 'mean occupancy in local area',
+				'mean occupancy on flanks', 'random flank affinity ratio range',
+				'repetitive flank affinity ratio range'], fontsize=20, bbox_to_anchor=(1.1, 1),
+			   loc='upper left')
+
+	fig.tight_layout()
+	plt.savefig(target + '/simulation_output/simulation_results_' + str(run_num) + '.pdf', dpi=300)
+
 def get_run_vars(target):
 	if target == 'simulation':
 		# TODO: this is not right
@@ -106,17 +152,21 @@ def get_run_vars(target):
 
 def main():
 	parser = argparse.ArgumentParser(description='Get number of jobs and sensitivity analysis target')
-	parser.add_argument('num_jobs', type=int, help='number of jobs')
+	parser.add_argument('run_num', type=int, help='number of runs')
 	parser.add_argument('target', type=str, help='sensitivity analysis target variable')
 	args = parser.parse_args()
 
-	# options for targets: 'n_flanks_sites', 'core_affinity', 'core_kinetics', 'flank_kinetics', 'n_TF'
+	# options for targets: 'n_flanks', 'core_affinity', 'core_kinetics', 'flank_kinetics', 'n_TF'
 	# 'sliding_kinetics', 'diffusion_kinetics', 'DNA_concentration'
-	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = load_arrays(args.num_jobs, args.target)
-	factor = np.geomspace(1e-3, 1, num=10)
 
-	run_vars = get_run_vars(args.target)
-	sensitivity_plot(args.target, args.num_jobs, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_flanks)
+	if args.target == 'simulation':
+		simulation_plot(args.target, args.run_num)
+	else:
+		first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = load_arrays(
+			args.run_num, args.target)
+		factor = np.geomspace(1e-3, 1, num=10)
+		run_vars = get_run_vars(args.target)
+		sensitivity_plot(args.target, args.run_num, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_flanks)
 
 if __name__ == "__main__":
     main()

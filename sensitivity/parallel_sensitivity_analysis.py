@@ -2,11 +2,17 @@ import os
 import argparse
 
 def run_jobs(num_jobs, target):
-	for i in range(num_jobs):
+	if target == 'simulation':
 		os.environ["TARGET"] = target
-		os.environ["RUN_NUM"] = str(i)
-		run_command = 'sbatch sensitivity_analysis.sh ' + str(i)
+		os.environ["RUN_NUM"] = str(num_jobs)
+		run_command = 'sbatch simulation.sh'
 		os.system(run_command)
+	else:
+		for i in range(num_jobs):
+			os.environ["TARGET"] = target
+			os.environ["RUN_NUM"] = str(i)
+			run_command = 'sbatch sensitivity_analysis.sh ' + str(i)
+			os.system(run_command)
 
 def main():
 	parser = argparse.ArgumentParser(description='Get number of jobs and sensitivity analysis target')

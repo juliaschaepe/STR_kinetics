@@ -89,14 +89,13 @@ def simulation_plot(target, run_num):
 
 	fig = plt.figure(figsize=(18, 10))
 	factor = np.geomspace(1e-4, 10)
-	n_rep = 100
 	ax = fig.add_subplot(111)
 	l1 = ax.errorbar(x=factor, y=np.median(first_passage, axis=0),
 					 yerr=np.std(first_passage, axis=0) / np.sqrt(run_num), marker='o',
 					 color='k')
 	ax.set_xscale('log')
-	ax.set_xlim(9e-4)
-	ax.set_ylim(-50, 2000)
+	# ax.set_xlim(9e-4)
+	# ax.set_ylim(-50, 2000)
 	ax.set_ylabel('time (sec)', fontsize=20)
 	ax.set_xlabel('ratio of affinity (flanks/core)', fontsize=20)
 	ax.tick_params(labelsize=14)
@@ -119,7 +118,7 @@ def simulation_plot(target, run_num):
 	ax1.tick_params(labelsize=14)
 
 	ax1.legend((l1, l2, l3, l4, l5, l6),
-			   ['first passage', 'mean occupancy on motif', 'mean occupancy in local area',
+			   ['first passage', 'mean occupancy on motif', 'mean occupancy in locally',
 				'mean occupancy on flanks', 'random flank affinity ratio range',
 				'repetitive flank affinity ratio range'], fontsize=20, bbox_to_anchor=(1.1, 1),
 			   loc='upper left')

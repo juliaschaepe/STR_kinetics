@@ -12,8 +12,10 @@ SIM_TIME = 1e4
 MAX_TIME = 1e5
 
 # returns kinetic parameters for gillespie simulation
-def get_k_array(n_flanks, factor, core_affinity=1e-7, core_koff=0.01, flank_slope=0.203,
-				flank_intercept=0.414, velocity_prob=1000 / 7, tf_diffusion=1):
+def get_k_array(n_flanks, factor, core_affinity=1e-7,
+				sliding_kinetics = 5.2e6, tf_diffusion=1):
+	koff_slope = 0.2031033040149204
+	koff_intercept = 0.41372462865960724
 
 	nuc_vol = 3 # um^3
 	local_vol = 3e-4 # um^3
@@ -28,16 +30,15 @@ def get_k_array(n_flanks, factor, core_affinity=1e-7, core_koff=0.01, flank_slop
 	k12 = 4 * np.pi * D * R / nuc_vol # 1/s
 	k21 = k12 * Kd_12  # to maintain "detailed balance", 1/s
 
-	k32 = core_koff  # source: MITOMI data - this is koff, 1/s
+	k32 = np.exp(np.log(Kd_23)*koff_slope + koff_intercept) # source: MITOMI data - this is koff, 1/s
 	k23 = k32 / Kd_23  # detailed balance - this is kon, 1/Ms
 
-	k42 = np.exp(flank_intercept+flank_slope*np.log(Kd_24))  # source: MITOMI data - this is koff, 1/s
+	k42 = np.exp(np.log(Kd_24)*koff_slope + koff_intercept)  # source: MITOMI data - this is koff, 1/s
 	k24 = k42 / Kd_24  # detailed balance - this is kon, 1/Ms
 
-	k43 = velocity_prob / (n_flanks / 2)  # this might need to be re-evaluated, 1/s
+	k43 = sliding_kinetics / 62.5  # this might need to be re-evaluated, 1/s
 	k34 = k43 / Kd_34  # detailed balance, 1/s
 
-	# Kds = [Kd_12, Kd_23, Kd_24, Kd_34]
 	return k12, k21, k23, k24, k32, k34, k42, k43
 
 

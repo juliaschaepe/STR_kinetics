@@ -23,14 +23,17 @@ def load_arrays(num_jobs, target):
 def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_flanks):
 	fig = plt.figure(figsize=(20, 6))
 	factor = np.around(factor, 3)
+	run_vars = np.asarray(run_vars)
 	ax = fig.add_subplot(131)
 	sns.heatmap(np.mean(first_passage, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
-	ax.set_xticklabels(run_vars, rotation=45)
-	ax.set_yticklabels(factor, rotation=0)
-	ax.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
-	ax.xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1e'))
+	run_vars_ticks = run_vars
+	factor_ticks = factor
+	run_vars_ticks = [format(x, ".1e") for x in run_vars]
+	factor_ticks = [format(y, ".1e") for y in factor]
+	ax.set_xticklabels(run_vars_ticks, rotation=30)
+	ax.set_yticklabels(factor_ticks, rotation=0)
 	ax.tick_params(labelsize=14)
 	ax.set_title('First passage time', fontsize=20)
 
@@ -38,21 +41,17 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	sns.heatmap(np.mean(mean_occupancy_mot, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
-	ax.set_yticklabels(factor, rotation=0)
-	ax.set_xticklabels(run_vars, rotation=45)
-	ax.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
-	ax.xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1e'))
+	ax.set_yticklabels(factor_ticks, rotation=0)
+	ax.set_xticklabels(run_vars_ticks, rotation=30)
 	ax.tick_params(labelsize=14)
-	ax.set_title('Mean consensus occupancy', fontsize=20)
+	ax.set_title('Mean motif occupancy', fontsize=20)
 
 	ax = fig.add_subplot(133)
 	sns.heatmap(np.mean(mean_occupancy_flanks, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
-	ax.set_yticklabels(factor, rotation=0)
-	ax.set_xticklabels(run_vars, rotation=45)
-	ax.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
-	ax.xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1e'))
+	ax.set_yticklabels(factor_ticks, rotation=0)
+	ax.set_xticklabels(run_vars_ticks, rotation=30)
 	ax.tick_params(labelsize=14)
 	ax.set_title('Mean flanks occupancy', fontsize=20)
 	plt.tight_layout()
@@ -81,11 +80,16 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	plt.savefig(target + '/' + target + '_correlation.pdf', dpi=300)
 
 
-def simulation_plot(target, run_num):
-	first_passage = np.load(target + '/simulation_output/first_passage_' + str(run_num) + '.npy')
-	mean_occupancy_mot = np.load(target + '/simulation_output/mean_occupancy_mot_' + str(run_num) + '.npy')
-	mean_occupancy_flanks = np.load(target + '/simulation_output/mean_occupancy_flanks_' + str(run_num) + '.npy')
-	mean_occupancy_local = np.load(target + '/simulation_output/mean_occupancy_local_' + str(run_num) + '.npy')
+def simulation_plot(target, run_num, factor):
+	first_passage = np.zeros((run_num, len(factor)))
+	mean_occupancy_mot = np.zeros((run_num, len(factor)))
+	mean_occupancy_flanks = np.zeros((run_num, len(factor)))
+	mean_occupancy_local = np.zeros((run_num, len(factor)))
+	for i in range(run_num):
+		first_passage[i,:] = np.load(target + '/simulation_output/first_passage_' + str(i) + '.npy')
+		mean_occupancy_mot[i,:] = np.load(target + '/simulation_output/mean_occupancy_mot_' + str(i) + '.npy')
+		mean_occupancy_flanks[i,:] = np.load(target + '/simulation_output/mean_occupancy_flanks_' + str(i) + '.npy')
+		mean_occupancy_local[i,:] = np.load(target + '/simulation_output/mean_occupancy_local_' + str(i) + '.npy')
 
 	fig = plt.figure(figsize=(18, 10))
 	factor = np.geomspace(1e-4, 10)
@@ -118,13 +122,13 @@ def simulation_plot(target, run_num):
 	ax1.tick_params(labelsize=14)
 
 	ax1.legend((l1, l2, l3, l4, l5, l6),
-			   ['first passage', 'mean occupancy on motif', 'mean occupancy in locally',
+			   ['first passage', 'mean occupancy on motif', 'mean occupancy in local volume',
 				'mean occupancy on flanks', 'random flank affinity ratio range',
 				'repetitive flank affinity ratio range'], fontsize=20, bbox_to_anchor=(1.1, 1),
 			   loc='upper left')
 
 	fig.tight_layout()
-	plt.savefig(target + '/simulation_output/simulation_results_' + str(run_num) + '.pdf', dpi=300)
+	plt.savefig(target + '/simulation_results_' + str(run_num) + '.pdf', dpi=300)
 
 def get_run_vars(target):
 	if target == 'simulation':
@@ -141,7 +145,7 @@ def get_run_vars(target):
 	if target == 'n_TF':
 		return np.array([50, 100, 200, 500, 1000, 2000, 5000])
 	if target == 'sliding_kinetics':
-		return np.geomspace(5, 1000, 10)
+		return np.geomspace(5, 1e5, 10)
 	if target == 'diffusion_kinetics':
 		# TODO: this needs to be updated
 		return np.geomspace(1e-5,1e-2, 10)
@@ -159,7 +163,8 @@ def main():
 	# 'sliding_kinetics', 'diffusion_kinetics', 'DNA_concentration'
 
 	if args.target == 'simulation':
-		simulation_plot(args.target, args.run_num)
+		factor = np.geomspace(1e-4, 10)
+		simulation_plot(args.target, args.run_num, factor)
 	else:
 		first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = load_arrays(
 			args.run_num, args.target)

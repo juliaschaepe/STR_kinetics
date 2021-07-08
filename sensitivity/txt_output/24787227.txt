@@ -1,4 +1,0 @@
-8
-n_deg_sites
-Run completed
-Job finished

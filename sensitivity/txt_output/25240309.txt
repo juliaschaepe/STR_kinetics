@@ -1,4 +1,0 @@
-10
-core_affinity
-Run completed
-Job finished

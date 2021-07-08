@@ -1,4 +1,0 @@
-7
-sliding_kinetics
-Run completed
-Job finished

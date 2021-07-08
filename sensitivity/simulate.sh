@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --job-name=sensitivity_analysis
+#SBATCH --job-name=simulation
 #SBATCH --output=txt_output/%j.txt
 #SBATCH --time=1:00:00
 #SBATCH --ntasks=1

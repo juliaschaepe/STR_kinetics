@@ -86,7 +86,7 @@ def get_k_array(n_flanks, factor, core_affinity=1e-7, switching_rate=0.5,
 	k42 = np.exp(np.log(Kd_24)*koff_slope + koff_intercept)  # source: MITOMI data - this is koff, 1/s
 	k24 = k42 / Kd_24  # detailed balance - this is kon, 1/Ms
 
-	# k43 = sliding_kinetics
+	# k43 = switching_rate
 	# k34 = k43 / Kd_34  # detailed balance, 1/s
 
 	k34 = Kd_24 * k24
@@ -116,9 +116,9 @@ def simulate_tf_search(sim_T, max_T, y0, k_array, DNA=5e-5, mfpt_only=False):
 				 ([1, 4], [2]),	# binding to motif
 				 ([1, 5], [3]),	# binding to flanks
 				 ([2], [1, 4]),	# unbinding from motif
-				 ([2, 5], [3, 4]),	# sliding onto flanks from motif
-				 ([3], [1, 5]),	# switching from motif
-				 ([3, 4], [2, 5])]	# sliding onto motif from flanks
+				 ([2, 5], [3, 4]),	# switching onto flanks from motif
+				 ([3], [1, 5]),	# unbinding from flanks
+				 ([3, 4], [2, 5])]	# switching onto motif from flanks
 
 	while t < max_T:
 

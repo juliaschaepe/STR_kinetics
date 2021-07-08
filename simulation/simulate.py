@@ -43,6 +43,8 @@ def main():
 		core_affinity_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'koff_slope':
 		koff_slope_sensitivity(args.target, args.run_num, args.y0, factors)
+	if args.target == 'koff_intercept':
+		koff_intercept_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'n_TF':
 		n_tf_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'switching_rate':
@@ -57,9 +59,9 @@ def main():
 
 	# these targets are set up to run locally for quick testing
 	if args.target == 'one_simulation':
-		one_simulation(args.y0)
+		one_simulation(args.target, args.y0)
 	if args.target == 'mfpt_simulation':
-		mfpt_simulation(args.run_num, args.y0)
+		mfpt_simulation(args.target, args.run_num, args.y0)
 
 	print('Run completed')
 
@@ -394,7 +396,7 @@ def simulation(factors, run_num, y0):
 
 
 # runs one simulation, prints information and plots local, flank and motif bound tfs over time
-def one_simulation(y0):
+def one_simulation(target, y0):
 	k_array_rpt = get_k_array(y0[-1], REPEAT_FACTOR)
 	print('k_array_rpt: ', k_array_rpt)
 	sim_data_rpt, first_passage = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array_rpt)
@@ -409,19 +411,19 @@ def one_simulation(y0):
 	plot_time = 1000
 	plot_single_molecule_trace(sim_data_rpt[:, TIME_INDEX], sim_data_rpt[:, MOTIF_INDEX],
 							   sim_data_rand[:, TIME_INDEX], sim_data_rand[:, MOTIF_INDEX],
-							   plot_time, 'bound to motif', 'simulation_tfs_motif')
+							   plot_time, 'bound to motif', 'simulation_tfs_motif', target)
 	plot_single_molecule_trace(sim_data_rpt[:, TIME_INDEX], sim_data_rpt[:, FLANK_INDEX],
 							   sim_data_rand[:, TIME_INDEX], sim_data_rand[:, FLANK_INDEX],
-							   plot_time, 'bound to flanks', 'simulation_tfs_flanks')
+							   plot_time, 'bound to flanks', 'simulation_tfs_flanks', target)
 	plot_single_molecule_trace(sim_data_rpt[:, TIME_INDEX], sim_data_rpt[:, LOCAL_INDEX],
 							   sim_data_rand[:, TIME_INDEX], sim_data_rand[:, LOCAL_INDEX],
-							   plot_time, 'in local volume', 'simulation_tfs_local')
+							   plot_time, 'in local volume', 'simulation_tfs_local', target)
 
-	plot_trace_all_states(sim_data_rpt, sim_data_rand, plot_time)
+	plot_trace_all_states(sim_data_rpt, sim_data_rand, plot_time, target)
 
 
 # runs simulation of only mfpt
-def mfpt_simulation(run_num, y0):
+def mfpt_simulation(target, run_num, y0):
 	# initialization
 	run_num = int(run_num)
 	rpt_fpt = np.zeros(run_num)
@@ -431,11 +433,13 @@ def mfpt_simulation(run_num, y0):
 
 	for i in tqdm.tqdm(range(int(run_num))):
 		k_array_rpt = get_k_array(y0[-1], REPEAT_FACTOR)
-		sim_data_rpt, first_passage = simulate_tf_search(1e5, 1e6, y0, k_array_rpt, mfpt_only=True)
+		sim_data_rpt, first_passage = simulate_tf_search(1e5, 1e6, y0,
+														 k_array_rpt, mfpt_only=True)
 		rpt_fpt[i] = first_passage
 
 		k_array_rand = get_k_array(y0[-1], RANDOM_FACTOR)
-		sim_data_rand, first_passage = simulate_tf_search(1e5, 1e6, y0, k_array_rand, mfpt_only=True)
+		sim_data_rand, first_passage = simulate_tf_search(1e5, 1e6, y0,
+														  k_array_rand, mfpt_only=True)
 		rand_fpt[i] = first_passage
 
 		# keeps track of mode for first passage (L-->F-->M or L-->M)
@@ -455,10 +459,10 @@ def mfpt_simulation(run_num, y0):
 		  ', mode: ', rand_mfpt_mode/np.sum(rand_mfpt_mode))
 
 	# save data
-	np.save('mfpt/rpt_fpt.npy', rpt_fpt)
-	np.save('mfpt/rand_fpt.npy', rand_fpt)
+	np.save(target + '/rpt_fpt.npy', rpt_fpt)
+	np.save(target + '/rand_fpt.npy', rand_fpt)
 
-	plot_mfpt(rand_fpt, rpt_fpt)
+	plot_mfpt(rand_fpt, rpt_fpt, target)
 
 
 ### HELPER FUNCTIONS
@@ -546,7 +550,7 @@ def print_occupancy_info(sim_data_rand, sim_data_rpt):
 
 
 # plots example single molecule trace of gillespie algorithm for one state
-def plot_single_molecule_trace(x1, y1, x2, y2, plot_time, location, title):
+def plot_single_molecule_trace(x1, y1, x2, y2, plot_time, location, title, target):
 	fig = plt.figure()
 	ax1 = fig.add_subplot(211)
 	ax1.plot(x1, y1, alpha=0.5, drawstyle='steps-post')
@@ -563,11 +567,11 @@ def plot_single_molecule_trace(x1, y1, x2, y2, plot_time, location, title):
 	ax2.set_ylabel('# of molecules')
 	ax2.set_xlabel('time (s)')
 	plt.tight_layout()
-	plt.savefig(title + '.pdf')
+	plt.savefig(target + '/' + title + '.pdf')
 
 
 # plots example single molecule trace of all four states together
-def plot_trace_all_states(sim_data_rpt, sim_data_rand, plot_time):
+def plot_trace_all_states(sim_data_rpt, sim_data_rand, plot_time, target):
 	# plot of all four states
 	fig = plt.figure()
 	ax1 = fig.add_subplot(211)
@@ -597,11 +601,11 @@ def plot_trace_all_states(sim_data_rpt, sim_data_rand, plot_time):
 	ax2.set_yticklabels(['CM', 'local', 'flanks', 'motif'])
 	ax2.set_xlabel('time (s)')
 	plt.tight_layout()
-	plt.savefig('simulation_summary.pdf')
+	plt.savefig(target + '/simulation_summary.pdf')
 
 
 # plots MFPT for repeat and random with SEM
-def plot_mfpt(rand_fpt, rpt_fpt, run_num):
+def plot_mfpt(rand_fpt, rpt_fpt, run_num, target):
 	fig, ax = plt.subplots()
 	ax.bar([0, 1], [np.average(rand_fpt), np.average(rpt_fpt)], yerr=[np.std(rand_fpt)/np.sqrt(run_num), np.std(rpt_fpt)/np.sqrt(run_num)],
 		   align='center', alpha=0.5, ecolor='black', capsize=10)
@@ -614,7 +618,7 @@ def plot_mfpt(rand_fpt, rpt_fpt, run_num):
 
 	# Save the figure and show
 	plt.tight_layout()
-	plt.savefig('mfpt/MFPT_plot.pdf')
+	plt.savefig(target + '/MFPT_plot.pdf')
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ def initialize_storage(n_jobs, n_factor, n_var):
     return np.zeros((n_jobs, n_factor, n_var)), np.zeros((n_jobs, n_factor, n_var)), np.zeros((n_jobs, n_factor, n_var)), np.zeros((n_jobs, n_factor, n_var))
 
 def load_arrays(num_jobs, target):
-	example = np.load(target + '/simulation_output/' + target + '_sensitivity_first_passage_0.npy')
+	example = np.load(target + '/simulation_output/' + target + '_sensitivity_first_passage_1.npy')
 	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(num_jobs, example.shape[0], example.shape[1])
 	for run_num in range(num_jobs):
 		first_passage[run_num, :, :] = np.load(target + '/simulation_output/' + target + '_sensitivity_first_passage_' + str(run_num) + '.npy')
@@ -20,12 +20,15 @@ def load_arrays(num_jobs, target):
 	return first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local
 
 
-def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_flanks):
+def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_flanks, log):
 	fig = plt.figure(figsize=(20, 6))
 	factor = np.around(factor, 3)
 	run_vars = np.asarray(run_vars)
 	ax = fig.add_subplot(131)
-	sns.heatmap(np.mean(first_passage, axis=0), xticklabels=run_vars)
+	if log:
+		sns.heatmap(np.mean(first_passage, axis=0), xticklabels=run_vars, norm=LogNorm())
+	else:
+		sns.heatmap(np.mean(first_passage, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
 	run_vars_ticks = run_vars
@@ -38,7 +41,10 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	ax.set_title('First passage time', fontsize=20)
 
 	ax = fig.add_subplot(132)
-	sns.heatmap(np.mean(mean_occupancy_mot, axis=0), xticklabels=run_vars)
+	if log:
+		sns.heatmap(np.mean(mean_occupancy_mot, axis=0), xticklabels=run_vars, norm=LogNorm())
+	else:
+		sns.heatmap(np.mean(mean_occupancy_mot, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
 	ax.set_yticklabels(factor_ticks, rotation=0)
@@ -47,7 +53,10 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage, mean_occ
 	ax.set_title('Mean motif occupancy', fontsize=20)
 
 	ax = fig.add_subplot(133)
-	sns.heatmap(np.mean(mean_occupancy_flanks, axis=0), xticklabels=run_vars)
+	if log:
+		sns.heatmap(np.mean(mean_occupancy_flanks, axis=0), xticklabels=run_vars, norm=LogNorm())
+	else:
+		sns.heatmap(np.mean(mean_occupancy_flanks, axis=0), xticklabels=run_vars)
 	ax.set_ylabel('affinity ratio\n(flanks/core)', fontsize=18)
 	ax.set_xlabel(target, fontsize=18)
 	ax.set_yticklabels(factor_ticks, rotation=0)
@@ -131,24 +140,18 @@ def simulation_plot(target, run_num, factor):
 	plt.savefig(target + '/simulation_results_' + str(run_num) + '.pdf', dpi=300)
 
 def get_run_vars(target):
-	if target == 'simulation':
-		# TODO: this is not right
-		return np.array([1, 10, 100, 500, 1000])
 	if target == 'n_flanks':
 		return np.array([1, 10, 100, 500, 1000])
 	if target == 'core_affinity':
 		return np.geomspace(1e-10, 1e-6, 10)
-	if target == 'core_kinetics':
-		return np.geomspace(1e-3, 1, 10)
-	if target == 'flank_kinetics':
-		return np.geomspace(1e-2, 1, 10)
+	if target == 'koff':
+		return np.geomspace(0.1, 1, 10)
 	if target == 'n_TF':
-		return np.array([50, 100, 200, 500, 1000, 2000, 5000])
+		return np.array([1, 5, 10, 50, 100])
 	if target == 'sliding_kinetics':
-		return np.geomspace(5, 1e5, 10)
+		return np.geomspace(0.1, 1e3, 10)
 	if target == 'diffusion_kinetics':
-		# TODO: this needs to be updated
-		return np.geomspace(1e-5,1e-2, 10)
+		return np.geomspace(1e-3, 1e2, 10)
 	if target == 'DNA_concentration':
 		return np.geomspace(1e-7, 1e-3, 10)
 
@@ -157,6 +160,7 @@ def main():
 	parser = argparse.ArgumentParser(description='Get number of jobs and sensitivity analysis target')
 	parser.add_argument('run_num', type=int, help='number of runs')
 	parser.add_argument('target', type=str, help='sensitivity analysis target variable')
+	parser.add_argument("-log", type=bool, default=False)
 	args = parser.parse_args()
 
 	# options for targets: 'n_flanks', 'core_affinity', 'core_kinetics', 'flank_kinetics', 'n_TF'
@@ -170,7 +174,7 @@ def main():
 			args.run_num, args.target)
 		factor = np.geomspace(1e-3, 1, num=10)
 		run_vars = get_run_vars(args.target)
-		sensitivity_plot(args.target, args.run_num, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_flanks)
+		sensitivity_plot(args.target, args.run_num, factor, run_vars, first_passage, mean_occupancy_mot, mean_occupancy_flanks, args.log)
 
 if __name__ == "__main__":
     main()

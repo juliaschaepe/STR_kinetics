@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 import tqdm
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Global variables
 MOTIF_INDEX = 4
@@ -13,8 +14,7 @@ MAX_TIME = 1e5
 
 # returns kinetic parameters for gillespie simulation
 def get_k_array(n_flanks, factor, core_affinity=1e-7,
-				sliding_kinetics = 5.2e6, tf_diffusion=1):
-	koff_slope = 0.2031033040149204
+				sliding_kinetics = 0.5, tf_diffusion=1, koff_slope=0.2031033040149204):
 	koff_intercept = 0.41372462865960724
 
 	nuc_vol = 3 # um^3
@@ -38,7 +38,8 @@ def get_k_array(n_flanks, factor, core_affinity=1e-7,
 
 	# k43 = sliding_kinetics / 62.5 / 7 # this might need to be re-evaluated, 1/s
 	# k43 = 100 / 62.5 / 7
-	k43 = 0.5
+	# k43 = 0.5
+	k43 = sliding_kinetics
 	k34 = k43 / Kd_34  # detailed balance, 1/s
 
 	return k12, k21, k23, k24, k32, k34, k42, k43
@@ -76,7 +77,7 @@ def simulate_tf_search(sim_T, max_T, y0, k_array, DNA=5e-5, mfpt_only = False):
 		w34 = k34 * y[2]
 		w43 = k43 * y[3]
 
-		# ensures conservation of 1 motif and 100 flanks without altering with rates
+		# ensures conservation of 1 motif and 100 flanks without altering rates
 		if y[4] == 0:
 			w43 = 0
 		if y[5] == 0:
@@ -195,13 +196,13 @@ def core_affinity_sensitivity(target, run_num, y0, factor):
 	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local)
 
 
-# sensitivity analysis for motif kinetics
-def core_kinetics_sensitivity(target, run_num, y0, factor):
-	core_koff = np.geomspace(1e-3, 1, 10)
-	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(len(factor), len(core_koff))
+# sensitivity analysis for koff kinetics
+def koff_sensitivity(target, run_num, y0, factor):
+	koff_slope = np.geomspace(0.1, 1, 10)
+	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(len(factor), len(koff_slope))
 	for i, ratio in enumerate(factor):
-		for j, koff in enumerate(core_koff):
-			k_array = get_k_array(100, ratio, core_koff=koff)
+		for j, slope in enumerate(koff_slope):
+			k_array = get_k_array(100, ratio, koff_slope=slope)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, DT_INDEX)
@@ -213,27 +214,9 @@ def core_kinetics_sensitivity(target, run_num, y0, factor):
 				mean_occupancy_local)
 
 
-# sensitivity analysis for flank kinetics
-def flank_kinetics_sensitivity(target, run_num, y0, factor):
-	koff_factors = np.geomspace(1e-3, 10, 10)
-	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(len(factor), len(koff_factors))
-	for i, ratio in enumerate(factor):
-		for j, koff_factor in enumerate(koff_factors):
-			k_array = get_k_array(100, ratio, koff_factor = koff_factor)
-			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
-			first_passage[i, j] = first_passage_time
-			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, DT_INDEX)
-			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX,
-																 DT_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																DT_INDEX, FLANK_INDEX)
-	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_flanks,
-					mean_occupancy_local)
-
-
 # sensitivity analysis for number of TFs
 def n_tf_sensitivity(target, run_num, y0, factor):
-	TF_number = np.array([50, 100, 200, 500, 1000, 2000, 5000])
+	TF_number = np.array([1, 5, 10, 50, 100])
 	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(len(factor), len(TF_number))
 	for i, ratio in enumerate(factor):
 		for j, n_TF in enumerate(TF_number):
@@ -252,10 +235,11 @@ def n_tf_sensitivity(target, run_num, y0, factor):
 
 # sensitivity analysis for 1D TF-DNA sliding rate
 def sliding_kinetics_sensitivity(target, run_num, y0, factor):
-	sliding_kinetics = np.geomspace(5, 1e5, 10)
+	sliding_kinetics = np.geomspace(0.1, 1e4, 10)
 	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(len(factor), len(sliding_kinetics))
 
 	for i, ratio in enumerate(factor):
+		print(ratio)
 		for j, value in enumerate(sliding_kinetics):
 			k_array = get_k_array(100, ratio, sliding_kinetics=value)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
@@ -272,7 +256,7 @@ def sliding_kinetics_sensitivity(target, run_num, y0, factor):
 # sensitivity analysis for rate of diffusion
 def diffusion_kinetics_sensitivity(target, run_num, y0, factor):
 	# TODO: this needs to be updated
-	diff_3D_arr = np.geomspace(1e-5, 1e-2, 10)
+	diff_3D_arr = np.geomspace(1e-3, 1e2, 10)
 	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(len(factor), len(diff_3D_arr))
 	for i, ratio in enumerate(factor):
 		for j, d in enumerate(diff_3D_arr):
@@ -296,7 +280,7 @@ def dna_concentration_sensitivity(target, run_num, y0, factor):
 	for i, ratio in enumerate(factor):
 		for j, DNA_conc in enumerate(DNA_conc_arr):
 			k_array = get_k_array(100, ratio)
-			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
+			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array, DNA=DNA_conc)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, DT_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX,
@@ -373,37 +357,94 @@ def one_simulation(y0):
 		  compute_fraction_time_occupied(sim_data_rpt, 4, 0, 1, 5))
 	print('random fraction of time with TF bound in antennae: ',
 		  compute_fraction_time_occupied(sim_data_rand, 4, 0, 1, 5))
-	sim_time = 2000
-	fig = plt.figure(figsize=(16, 5))
-	plt.plot(sim_data_rpt[:, 1], sim_data_rpt[:, 4], alpha=0.5)
-	plt.plot(sim_data_rand[:, 1], sim_data_rand[:, 4], alpha=0.5)
-	plt.legend(['repeat', 'random'])
-	plt.xlim([0, sim_time])
-	plt.ylabel('# of molecules')
-	plt.xlabel('time (s)')
-	plt.title('TFs bound to motif')
+	sim_time = 1000
+	fig = plt.figure()
+	ax1 = fig.add_subplot(211)
+	ax1.plot(sim_data_rpt[:, 1], sim_data_rpt[:, 4], alpha=0.5, drawstyle='steps-post')
+	ax1.set_xlim([0, sim_time])
+	ax1.set_title('TFs bound to motif with repeat flanks')
+	ax1.set_ylabel('# of molecules')
+	ax1.set_yticks([0,1])
+	ax1.set_xlabel('time (s)')
+	ax2 = fig.add_subplot(212)
+	ax2.plot(sim_data_rand[:, 1], sim_data_rand[:, 4], alpha=0.5, drawstyle='steps-post')
+	ax2.set_title('TFs bound to motif with random flanks')
+	ax2.set_xlim([0, sim_time])
+	ax2.set_yticks([0,1])
+	ax2.set_ylabel('# of molecules')
+	ax2.set_xlabel('time (s)')
+	plt.tight_layout()
 	plt.savefig('simulation_tfs_motif.pdf')
 
-	fig = plt.figure(figsize=(16, 5))
-	plt.plot(sim_data_rpt[:, 1], sim_data_rpt[:, 5], alpha=0.5)
-	plt.plot(sim_data_rand[:, 1], sim_data_rand[:, 5], alpha=0.5)
-	plt.legend(['repeat', 'random'])
-	plt.xlim([0, sim_time])
-	plt.ylabel('# of molecules')
-	plt.xlabel('time (s)')
-	plt.title('TFs bound to flanks')
+	fig = plt.figure()
+	ax1 = fig.add_subplot(211)
+	ax1.plot(sim_data_rpt[:, 1], sim_data_rpt[:, 5], alpha=0.5, drawstyle='steps-post')
+	ax1.set_xlim([0, sim_time])
+	ax1.set_title('TFs bound to flanks with repeat flanks')
+	ax1.set_ylabel('# of molecules')
+	ax1.set_yticks([0, 1])
+	ax1.set_xlabel('time (s)')
+	ax2 = fig.add_subplot(212)
+	ax2.plot(sim_data_rand[:, 1], sim_data_rand[:, 5], alpha=0.5, drawstyle='steps-post')
+	ax2.set_title('TFs bound to flanks with random flanks')
+	ax2.set_xlim([0, sim_time])
+	ax2.set_yticks([0, 1])
+	ax2.set_ylabel('# of molecules')
+	ax2.set_xlabel('time (s)')
+	plt.tight_layout()
 	plt.savefig('simulation_tfs_flanks.pdf')
 
-	fig = plt.figure(figsize=(16, 5))
-	plt.plot(sim_data_rpt[:, 1], sim_data_rpt[:, 3], alpha=0.5)
-	plt.plot(sim_data_rand[:, 1], sim_data_rand[:, 3], alpha=0.5)
-	plt.legend(['repeat', 'random'])
-	plt.xlim([0, sim_time])
-	plt.ylabel('# of molecules')
-	plt.xlabel('time (s)')
-	plt.title('TFs in local volume')
-
+	fig = plt.figure()
+	ax1 = fig.add_subplot(211)
+	ax1.plot(sim_data_rpt[:, 1], sim_data_rpt[:, 3], alpha=0.5, drawstyle='steps-post')
+	ax1.set_xlim([0, sim_time])
+	ax1.set_title('TFs in local volume with repeat flanks')
+	ax1.set_ylabel('# of molecules')
+	ax1.set_yticks([0, 1])
+	ax1.set_xlabel('time (s)')
+	ax2 = fig.add_subplot(212)
+	ax2.plot(sim_data_rand[:, 1], sim_data_rand[:, 3], alpha=0.5, drawstyle='steps-post')
+	ax2.set_title('TFs in local volume with random flanks')
+	ax2.set_xlim([0, sim_time])
+	ax2.set_yticks([0, 1])
+	ax2.set_ylabel('# of molecules')
+	ax2.set_xlabel('time (s)')
+	plt.tight_layout()
 	plt.savefig('simulation_tfs_local.pdf')
+
+	# plot of all four states
+	fig = plt.figure()
+	ax1 = fig.add_subplot(211)
+	state_data = sim_data_rpt[:, 2] + sim_data_rpt[:, 3]*2 + sim_data_rpt[:, 5]*3 + sim_data_rpt[:, 4]*4
+	ax1.plot(sim_data_rpt[:, 1], state_data, alpha=0.5, drawstyle='steps-post')
+	# for i in range(len(sim_data_rpt)):
+	# 	if sim_data_rpt[i, 1] >= sim_time:
+	# 		break
+	# 	if sim_data_rpt[i, 4] == 1:
+	# 		ax1.axvspan(sim_data_rpt[i, 1], sim_data_rpt[i+1, 1], color='orange', alpha=0.5, capstyle='butt')
+	ax1.set_xlim([0, sim_time])
+	ax1.set_title('TFs in local volume with repeat flanks')
+	ax1.set_ylabel('# of molecules')
+	ax1.set_yticks([1, 2, 3, 4])
+	ax1.set_yticklabels(['CM', 'local', 'flanks', 'motif'])
+	ax1.set_xlabel('time (s)')
+	ax2 = fig.add_subplot(212)
+	state_data = sim_data_rand[:, 2] + sim_data_rand[:, 3] * 2 + sim_data_rand[:,
+															   5] * 3 + sim_data_rand[:, 4] * 4
+	ax2.plot(sim_data_rand[:, 1], state_data, alpha=0.5, drawstyle='steps-post')
+	# for i in range(len(sim_data_rand)):
+	# 	if sim_data_rand[i, 1] >= sim_time:
+	# 		break
+	# 	if sim_data_rand[i, 4] == 1:
+	# 		ax2.axvspan(sim_data_rand[i, 1], sim_data_rand[i+1, 1], color='orange', alpha=0.5)
+	ax2.set_xlim([0, sim_time])
+	ax2.set_title('TFs in local volume with random flanks')
+	ax2.set_ylabel('# of molecules')
+	ax2.set_yticks([1, 2, 3, 4])
+	ax2.set_yticklabels(['CM', 'local', 'flanks', 'motif'])
+	ax2.set_xlabel('time (s)')
+	plt.tight_layout()
+	plt.savefig('simulation_summary.pdf')
 
 
 def mfpt_simulation(run_num, y0):
@@ -446,9 +487,9 @@ def mfpt_simulation(run_num, y0):
 	np.save('mfpt/rand_fpt.npy', rand_fpt)
 
 	fig, ax = plt.subplots()
-	# ax.bar([0, 1], [np.average(rand_fpt), np.average(rpt_fpt)], yerr=[np.std(rand_fpt), np.std(rpt_fpt)],
-	# 	   align='center', alpha=0.5, ecolor='black', capsize=10)
-	ax.violinplot([rand_fpt, rpt_fpt], [0, 1], showmeans=True, showextrema=True)
+	ax.bar([0, 1], [np.average(rand_fpt), np.average(rpt_fpt)], yerr=[np.std(rand_fpt)/np.sqrt(run_num), np.std(rpt_fpt)/np.sqrt(run_num)],
+		   align='center', alpha=0.5, ecolor='black', capsize=10)
+	# ax.violinplot([rand_fpt, rpt_fpt], [0, 1], showmeans=True, showextrema=True)
 	ax.set_ylabel('Mean first passage time (s)')
 	ax.set_xticks([0, 1])
 	ax.set_xticklabels(['random', 'repeat'])
@@ -476,10 +517,8 @@ def main():
 		n_flanks_sensitivity(args.target, args.run_num, args.y0, factor)
 	if args.target == 'core_affinity':
 		core_affinity_sensitivity(args.target, args.run_num, args.y0, factor)
-	if args.target == 'core_kinetics':
-		core_kinetics_sensitivity(args.target, args.run_num, args.y0, factor)
-	if args.target == 'flank_kinetics':
-		flank_kinetics_sensitivity(args.target, args.run_num, args.y0, factor)
+	if args.target == 'koff':
+		koff_sensitivity(args.target, args.run_num, args.y0, factor)
 	if args.target == 'n_TF':
 		n_tf_sensitivity(args.target, args.run_num, args.y0, factor)
 	if args.target == 'sliding_kinetics':

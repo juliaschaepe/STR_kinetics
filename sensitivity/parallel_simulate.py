@@ -5,7 +5,7 @@ def run_jobs(num_jobs, target):
 	for i in range(num_jobs):
 		os.environ["TARGET"] = target
 		os.environ["RUN_NUM"] = str(i)
-		run_command = 'simulate.sh ' + str(i)
+		run_command = 'sbatch simulate.sh ' + str(i)
 		os.system(run_command)
 
 def main():

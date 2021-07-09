@@ -203,8 +203,7 @@ def n_flanks_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot,
 				mean_occupancy_flanks, mean_occupancy_local)
 
@@ -221,8 +220,7 @@ def core_affinity_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot,
 				mean_occupancy_flanks, mean_occupancy_local)
 
@@ -239,8 +237,7 @@ def koff_slope_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot,
 				mean_occupancy_flanks, mean_occupancy_local)
 
@@ -257,8 +254,7 @@ def koff_intercept_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot,
 				mean_occupancy_flanks, mean_occupancy_local)
 
@@ -276,8 +272,7 @@ def n_tf_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_flanks,
 					mean_occupancy_local)
 
@@ -296,8 +291,7 @@ def switching_rate_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_flanks,
 					mean_occupancy_local)
 
@@ -314,8 +308,7 @@ def diffusion_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_flanks,
 					mean_occupancy_local)
 
@@ -333,8 +326,7 @@ def dna_concentration_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_flanks,
 					mean_occupancy_local)
 
@@ -352,8 +344,7 @@ def local_volume_sensitivity(target, run_num, y0, factors):
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
 			mean_occupancy_flanks[i, j] = compute_mean_occupancy(sim_data, FLANK_INDEX)
-			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX,
-																FLANK_INDEX)
+			mean_occupancy_local[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX, FLANK_INDEX)
 	save_output(target, run_num, first_passage, mean_occupancy_mot, mean_occupancy_flanks,
 					mean_occupancy_local)
 
@@ -430,13 +421,11 @@ def mfpt_simulation(target, run_num, y0):
 
 	for i in tqdm.tqdm(range(int(run_num))):
 		k_array_rpt = get_k_array(REPEAT_FACTOR)
-		sim_data_rpt, first_passage = simulate_tf_search(1e5, 1e6, y0,
-														 k_array_rpt, mfpt_only=True)
+		sim_data_rpt, first_passage = simulate_tf_search(1e5, 1e6, y0, k_array_rpt, mfpt_only=True)
 		rpt_fpt[i] = first_passage
 
 		k_array_rand = get_k_array(RANDOM_FACTOR)
-		sim_data_rand, first_passage = simulate_tf_search(1e5, 1e6, y0,
-														  k_array_rand, mfpt_only=True)
+		sim_data_rand, first_passage = simulate_tf_search(1e5, 1e6, y0, k_array_rand, mfpt_only=True)
 		rand_fpt[i] = first_passage
 
 		# keeps track of mode for first passage (L-->F-->M or L-->M)

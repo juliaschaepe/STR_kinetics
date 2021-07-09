@@ -9,9 +9,6 @@ without repeats flanking a motif. Sensitivity analysis functions are also includ
 The simulation and the sensitivity analysis functions are intended to be parallelized
 to speed up computation. See Gillespie method for information about states and 
 equations defining rates, affinities, and reaction likelihoods.
-
-Note that here numbers are used to represent different states in the model. 
-1 = nucleus, 2 = local, 3 = motif bound, 4 = flanks bound
 '''
 
 # Global variables
@@ -25,7 +22,7 @@ RXN_INDEX = 6
 SIM_TIME = 5e3
 MAX_TIME = 1e5
 REPEAT_FACTOR = 0.1
-RANDOM_FACTOR = 100
+RANDOM_FACTOR = 0.01
 
 # parses input and runs appropriate simulation or sensitivity analysis
 def main():
@@ -53,6 +50,8 @@ def main():
 		diffusion_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'DNA_concentration':
 		dna_concentration_sensitivity(args.target, args.run_num, args.y0, factors)
+	if args.target == 'local_volume':
+		local_volume_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'simulation':
 		factors = np.geomspace(1e-4, 10)
 		simulation(factors, args.run_num, args.y0)
@@ -67,34 +66,31 @@ def main():
 
 
 # returns kinetic parameters for gillespie simulation
-def get_k_array(n_flanks, factor, core_affinity=1e-7, switching_rate=0.5,
+def get_k_array(factor, core_affinity=1e-7, switching_ratio=0.5,
 				tf_diffusion=1, koff_slope=0.203, koff_intercept=0.414,
 				local_vol=1e-4):
 	nuc_vol = 3 # um^3
 	D = tf_diffusion  # um^2/s
 	R = np.cbrt(3 * local_vol / (4 * np.pi)) # um
 
-	Kd_23 = core_affinity  # source: MITOMI data
-	Kd_24 = core_affinity / factor
-	Kd_34 = Kd_24 / Kd_23
-	Kd_12 = nuc_vol / local_vol
+	Kd_NL = nuc_vol / local_vol
+	Kd_LM = core_affinity  # source: MITOMI data
+	Kd_LF = core_affinity / factor	# source: MITOMI data
+	Kd_MF = Kd_LF / Kd_LM
 
-	k12 = 4 * np.pi * D * R / nuc_vol # smoluchowski diffusion, 1/s
-	k21 = k12 * Kd_12 # to maintain "detailed balance", 1/s
+	kNL = 4 * np.pi * D * R / nuc_vol # smoluchowski diffusion, 1/s
+	kLN = kNL * Kd_NL # to maintain "detailed balance", 1/s
 
-	k32 = np.exp(np.log(Kd_23)*koff_slope + koff_intercept) # source: MITOMI data - this is koff, 1/s
-	k23 = k32 / Kd_23  # detailed balance - this is kon, 1/Ms
+	kML = np.exp(np.log(Kd_LM)*koff_slope + koff_intercept) # source: MITOMI data - this is koff, 1/s
+	kLM = kML / Kd_LM  # detailed balance - this is kon, 1/Ms
 
-	k42 = np.exp(np.log(Kd_24)*koff_slope + koff_intercept)  # source: MITOMI data - this is koff, 1/s
-	k24 = k42 / Kd_24  # detailed balance - this is kon, 1/Ms
+	kFL = np.exp(np.log(Kd_LF)*koff_slope + koff_intercept)  # source: MITOMI data - this is koff, 1/s
+	kLF = kFL / Kd_LF  # detailed balance - this is kon, 1/Ms
 
-	# k43 = switching_rate
-	# k34 = k43 / Kd_34  # detailed balance, 1/s
+	kMF = kML*switching_ratio	# source Marklund et al., Nature (2020)
+	kFM = Kd_MF * kMF	# detailed balance
 
-	k34 = Kd_24 * k24
-	k43 = Kd_34 * k34
-
-	return k12, k21, k23, k24, k32, k34, k42, k43
+	return kNL, kLN, kLM, kLF, kML, kMF, kFL, kFM
 
 
 # Gillespie simulation of TFsearch
@@ -111,6 +107,7 @@ def simulate_tf_search(sim_T, max_T, y0, k_array, DNA=5e-5, mfpt_only=False):
 	n_rows = 100000
 	sim_data = np.zeros((n_rows, len(y0) + 3))
 	sim_data[0] = np.hstack([0, t, y, rxn])
+	sim_data_occ = np.asarray(sim_data)
 
 	# maps a given reaction to how molecules should be updated (subtract from, add to)
 	w_mapping = [([0], [1]),	# diffusion into local volume
@@ -201,7 +198,7 @@ def n_flanks_sensitivity(target, run_num, y0, factors):
 	for i, factor in enumerate(factors):
 		for j, n in enumerate(n_flanks):
 			y0[-1] = n
-			k_array = get_k_array(n, factor)
+			k_array = get_k_array(factor)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -219,7 +216,7 @@ def core_affinity_sensitivity(target, run_num, y0, factors):
 		len(factors), len(core_affinities))
 	for i, factor in enumerate(factors):
 		for j, Kd in enumerate(core_affinities):
-			k_array = get_k_array(y0[-1], factor, core_affinity=Kd)
+			k_array = get_k_array(factor, core_affinity=Kd)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -237,7 +234,7 @@ def koff_slope_sensitivity(target, run_num, y0, factors):
 		len(factors), len(koff_slopes))
 	for i, factor in enumerate(factors):
 		for j, koff_slope in enumerate(koff_slopes):
-			k_array = get_k_array(y0[-1], factor, koff_slope=koff_slope)
+			k_array = get_k_array(factor, koff_slope=koff_slope)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -255,7 +252,7 @@ def koff_intercept_sensitivity(target, run_num, y0, factors):
 		len(factors), len(koff_intercepts))
 	for i, factor in enumerate(factors):
 		for j, koff_intercept in enumerate(koff_intercepts):
-			k_array = get_k_array(y0[-1], factor, koff_intercept=koff_intercept)
+			k_array = get_k_array(factor, koff_intercept=koff_intercept)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -273,7 +270,7 @@ def n_tf_sensitivity(target, run_num, y0, factors):
 		len(factors), len(TF_numbers))
 	for i, factor in enumerate(factors):
 		for j, n_TF in enumerate(TF_numbers):
-			k_array = get_k_array(y0[-1], factor)
+			k_array = get_k_array(factor)
 			y0[0] = n_TF
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
@@ -294,7 +291,7 @@ def switching_rate_sensitivity(target, run_num, y0, factors):
 	for i, factor in enumerate(factors):
 		print(factor)
 		for j, switching_rate in enumerate(switching_kinetics):
-			k_array = get_k_array(y0[-1], factor, switching_rate=switching_rate)
+			k_array = get_k_array(factor, switching_ratio=switching_rate)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -312,7 +309,7 @@ def diffusion_sensitivity(target, run_num, y0, factors):
 		len(factors), len(diffusion_constants))
 	for i, factor in enumerate(factors):
 		for j, diffusion_constant in enumerate(diffusion_constants):
-			k_array = get_k_array(y0[-1], factor, tf_diffusion=diffusion_constant)
+			k_array = get_k_array(factor, tf_diffusion=diffusion_constant)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -331,7 +328,7 @@ def dna_concentration_sensitivity(target, run_num, y0, factors):
 
 	for i, factor in enumerate(factors):
 		for j, DNA_concentration in enumerate(DNA_concentrations):
-			k_array = get_k_array(y0[-1], factor)
+			k_array = get_k_array(factor)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array, DNA=DNA_concentration)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -350,7 +347,7 @@ def local_volume_sensitivity(target, run_num, y0, factors):
 
 	for i, factor in enumerate(factors):
 		for j, local_vol in enumerate(local_volumes):
-			k_array = get_k_array(y0[-1], factor, local_vol=local_vol)
+			k_array = get_k_array(factor, local_vol=local_vol)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -381,7 +378,7 @@ def simulation(factors, run_num, y0):
 
 	# loop through all factors and run simulation
 	for j, factor in enumerate(factors):
-		k_array = get_k_array(y0[-1], factor)
+		k_array = get_k_array(factor)
 		sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 		first_passage[j] = first_passage_time
 		print('factor: ', factor, ' first passage: ', first_passage_time)
@@ -397,12 +394,12 @@ def simulation(factors, run_num, y0):
 
 # runs one simulation, prints information and plots local, flank and motif bound tfs over time
 def one_simulation(target, y0):
-	k_array_rpt = get_k_array(y0[-1], REPEAT_FACTOR)
+	k_array_rpt = get_k_array(REPEAT_FACTOR)
 	print('k_array_rpt: ', k_array_rpt)
 	sim_data_rpt, first_passage = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array_rpt)
 	print('rpt first passage: ', first_passage)
 
-	k_array_rand = get_k_array(y0[-1], RANDOM_FACTOR)
+	k_array_rand = get_k_array(RANDOM_FACTOR)
 	print('k_array_rand: ', k_array_rand)
 	sim_data_rand, first_passage = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array_rand)
 	print('rand first passage: ', first_passage)
@@ -432,12 +429,12 @@ def mfpt_simulation(target, run_num, y0):
 	rand_mfpt_mode = np.zeros(2)
 
 	for i in tqdm.tqdm(range(int(run_num))):
-		k_array_rpt = get_k_array(y0[-1], REPEAT_FACTOR)
+		k_array_rpt = get_k_array(REPEAT_FACTOR)
 		sim_data_rpt, first_passage = simulate_tf_search(1e5, 1e6, y0,
 														 k_array_rpt, mfpt_only=True)
 		rpt_fpt[i] = first_passage
 
-		k_array_rand = get_k_array(y0[-1], RANDOM_FACTOR)
+		k_array_rand = get_k_array(RANDOM_FACTOR)
 		sim_data_rand, first_passage = simulate_tf_search(1e5, 1e6, y0,
 														  k_array_rand, mfpt_only=True)
 		rand_fpt[i] = first_passage
@@ -462,7 +459,7 @@ def mfpt_simulation(target, run_num, y0):
 	np.save(target + '/rpt_fpt.npy', rpt_fpt)
 	np.save(target + '/rand_fpt.npy', rand_fpt)
 
-	plot_mfpt(rand_fpt, rpt_fpt, target)
+	plot_mfpt(rand_fpt, rpt_fpt, run_num, target)
 
 
 ### HELPER FUNCTIONS
@@ -513,7 +510,7 @@ def get_run_vars(target):
 	if target == 'n_TF':
 		return np.geomspace(1, 1000, 10)
 	if target == 'switching_rate':
-		return np.geomspace(0.01, 1e2, 10)
+		return np.geomspace(0.01, 10, 10)
 	if target == 'diffusion':
 		return np.geomspace(0.5, 5, 10)
 	if target == 'DNA_concentration':
@@ -528,25 +525,25 @@ def print_occupancy_info(sim_data_rand, sim_data_rpt):
 		'                               [cellular milleu, local, motif bound, flanks bound]')
 	print('')
 	print('repeat fraction time occupied: ',
-		  [compute_fraction_time_occupied(sim_data_rpt, x, 0, 1) for x in
+		  [compute_fraction_time_occupied(sim_data_rpt, x) for x in
 		   list(np.arange(2, 6))])
 	print('random fraction time occupied: ',
-		  [compute_fraction_time_occupied(sim_data_rand, x, 0, 1) for x in
+		  [compute_fraction_time_occupied(sim_data_rand, x) for x in
 		   list(np.arange(2, 6))])
 	print('repeat mean occupancy: ',
-		  [compute_mean_occupancy(sim_data_rpt, x, 0) for x in np.arange(2, 6)])
+		  [compute_mean_occupancy(sim_data_rpt, x) for x in np.arange(2, 6)])
 	print('random mean occupancy: ',
-		  [compute_mean_occupancy(sim_data_rand, x, 0) for x in np.arange(2, 6)])
+		  [compute_mean_occupancy(sim_data_rand, x) for x in np.arange(2, 6)])
 	print('')
 	print('repeat mean number of TFs bound in antennae: ',
-		  compute_mean_occupancy(sim_data_rpt, 4, 0, 5))
+		  compute_mean_occupancy(sim_data_rpt, 4, 5))
 	print('random mean number of TFs bound in antennae: ',
-		  compute_mean_occupancy(sim_data_rand, 4, 0, 5))
+		  compute_mean_occupancy(sim_data_rand, 4, 5))
 	print('')
 	print('repeat fraction of time with TF bound in antennae: ',
-		  compute_fraction_time_occupied(sim_data_rpt, 4, 0, 1, 5))
+		  compute_fraction_time_occupied(sim_data_rpt, 4, 5))
 	print('random fraction of time with TF bound in antennae: ',
-		  compute_fraction_time_occupied(sim_data_rand, 4, 0, 1, 5))
+		  compute_fraction_time_occupied(sim_data_rand, 4, 5))
 
 
 # plots example single molecule trace of gillespie algorithm for one state

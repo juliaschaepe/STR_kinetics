@@ -91,7 +91,7 @@ def simulation_plot(target, run_num, factor):
 	ax = fig.add_subplot(111)
 	l1 = ax.errorbar(x=factor, y=np.median(first_passage, axis=0),
 					 yerr=np.std(first_passage, axis=0) / np.sqrt(run_num), marker='o',
-					 color='k')
+					 color='k', capsize=10)
 	ax.set_xscale('log')
 	ax.set_ylabel('time (sec)', fontsize=20)
 	ax.set_xlabel('ratio of affinity (flanks/core)', fontsize=20)
@@ -100,13 +100,13 @@ def simulation_plot(target, run_num, factor):
 	ax1 = ax.twinx()
 	l2 = ax1.errorbar(x=factor, y=np.median(mean_occupancy_mot, axis=0),
 					  yerr=np.std(mean_occupancy_mot, axis=0) / np.sqrt(run_num), marker='o',
-					  color='C1')
+					  color='C1', capsize=10)
 	l3 = ax1.errorbar(x=factor, y=np.median(mean_occupancy_local, axis=0),
 					  yerr=np.std(mean_occupancy_local, axis=0) / np.sqrt(run_num), marker='o',
-					  color='C0')
+					  color='C0', capsize=10)
 	l4 = ax1.errorbar(x=factor, y=np.median(mean_occupancy_flanks, axis=0),
 					  yerr=np.std(mean_occupancy_flanks, axis=0) / np.sqrt(run_num), marker='o',
-					  color='C2')
+					  color='C2', capsize=10)
 
 	# highlight repeat and random regions for affinity ratios
 	l5 = plt.axvspan(9e-3, 11e-3, color='black', alpha=0.3)
@@ -153,7 +153,7 @@ def get_run_vars(target):
 	if target == 'n_TF':
 		return np.geomspace(1, 1000, 10)
 	if target == 'switching_rate':
-		return np.geomspace(0.01, 1e2, 10)
+		return np.geomspace(0.01, 10, 10)
 	if target == 'diffusion':
 		return np.geomspace(0.5, 5, 10)
 	if target == 'DNA_concentration':

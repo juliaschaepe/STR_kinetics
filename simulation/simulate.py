@@ -44,8 +44,8 @@ def main():
 		koff_intercept_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'n_TF':
 		n_tf_sensitivity(args.target, args.run_num, args.y0, factors)
-	if args.target == 'switching_rate':
-		switching_rate_sensitivity(args.target, args.run_num, args.y0, factors)
+	if args.target == 'switching_ratio':
+		switching_ratio_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'diffusion':
 		diffusion_sensitivity(args.target, args.run_num, args.y0, factors)
 	if args.target == 'DNA_concentration':
@@ -55,6 +55,10 @@ def main():
 	if args.target == 'simulation':
 		factors = np.geomspace(1e-4, 10)
 		simulation(factors, args.run_num, args.y0)
+	if args.target == 'simulation_mutated':
+		factors = np.geomspace(1e-4, 10)
+		core_affinity = 1e-8
+		simulation(factors, args.run_num, args.y0, core_affinity)
 
 	# these targets are set up to run locally for quick testing
 	if args.target == 'one_simulation':
@@ -278,15 +282,15 @@ def n_tf_sensitivity(target, run_num, y0, factors):
 
 
 # sensitivity analysis for flanks-->motif switching rate
-def switching_rate_sensitivity(target, run_num, y0, factors):
-	switching_kinetics = get_run_vars(target)
+def switching_ratio_sensitivity(target, run_num, y0, factors):
+	switching_ratios = get_run_vars(target)
 	first_passage, mean_occupancy_mot, mean_occupancy_flanks, mean_occupancy_local = initialize_storage(
-		len(factors), len(switching_kinetics))
+		len(factors), len(switching_ratios))
 
 	for i, factor in enumerate(factors):
 		print(factor)
-		for j, switching_rate in enumerate(switching_kinetics):
-			k_array = get_k_array(factor, switching_ratio=switching_rate)
+		for j, switching_ratio in enumerate(switching_ratios):
+			k_array = get_k_array(factor, switching_ratio=switching_ratio)
 			sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 			first_passage[i, j] = first_passage_time
 			mean_occupancy_mot[i, j] = compute_mean_occupancy(sim_data, MOTIF_INDEX)
@@ -360,7 +364,7 @@ def test_occupancy_function():
 
 
 # runs baseline gillespie simulation
-def simulation(factors, run_num, y0):
+def simulation(factors, run_num, y0, core_affinity=1e-7):
 	# initialize
 	first_passage = np.zeros(len(factors))
 	mean_occupancy_mot = np.zeros(len(factors))
@@ -369,7 +373,7 @@ def simulation(factors, run_num, y0):
 
 	# loop through all factors and run simulation
 	for j, factor in enumerate(factors):
-		k_array = get_k_array(factor)
+		k_array = get_k_array(factor, core_affinity=core_affinity)
 		sim_data, first_passage_time = simulate_tf_search(SIM_TIME, MAX_TIME, y0, k_array)
 		first_passage[j] = first_passage_time
 		print('factor: ', factor, ' first passage: ', first_passage_time)
@@ -495,10 +499,10 @@ def get_run_vars(target):
 	if target == 'koff_slope':
 		return np.geomspace(0.1, 1, 10)
 	if target == 'koff_intercept':
-		return np.geomspace(-3, 5, 10)
+		return np.linspace(-3, 5, 10)
 	if target == 'n_TF':
 		return np.geomspace(1, 1000, 10)
-	if target == 'switching_rate':
+	if target == 'switching_ratio':
 		return np.geomspace(0.01, 10, 10)
 	if target == 'diffusion':
 		return np.geomspace(0.5, 5, 10)

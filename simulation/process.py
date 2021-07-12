@@ -21,7 +21,7 @@ def main():
 	args = parser.parse_args()
 	factor = np.geomspace(1e-3, 1, num=10)
 
-	if args.target == 'simulation':
+	if args.target in ['simulation', 'simulation_mutated']:
 		factor = np.geomspace(1e-4, 10)
 		simulation_plot(args.target, args.run_num, factor)
 	else:
@@ -59,8 +59,13 @@ def sensitivity_plot(target, num_jobs, factor, run_vars, first_passage,
 		r, p = scipy.stats.spearmanr(-np.hstack([factor] * num_jobs), first_passage[:, :, i].flat)
 		spearman_arr[i] = r
 	ax.plot(run_vars, spearman_arr, marker='o', ls='')
-	ax.legend(['Spearman rho'])
-	ax.set_xscale('log')
+	set_value = get_set_value(target)
+	ax.axvline(x=set_value)
+	ax.legend(['Spearman rho', 'Set value'])
+	if target != 'koff_intercept':
+		ax.set_xscale('log')
+	if target in ['diffusion', 'local_volume', 'n_flanks']:
+		ax.set_ylim(0, 0.7)
 	ax.set_xlabel(target, fontsize=18)
 	ax.set_ylabel('correlation', fontsize=18)
 	ax.set_title('Correlation between ' + target + ' and time to first passage')
@@ -91,7 +96,7 @@ def simulation_plot(target, run_num, factor):
 	ax = fig.add_subplot(111)
 	l1 = ax.errorbar(x=factor, y=np.median(first_passage, axis=0),
 					 yerr=np.std(first_passage, axis=0) / np.sqrt(run_num), marker='o',
-					 color='k', capsize=10)
+					 color='k', capsize=5)
 	ax.set_xscale('log')
 	ax.set_ylabel('time (sec)', fontsize=20)
 	ax.set_xlabel('ratio of affinity (flanks/core)', fontsize=20)
@@ -149,10 +154,10 @@ def get_run_vars(target):
 	if target == 'koff_slope':
 		return np.geomspace(0.1, 1, 10)
 	if target == 'koff_intercept':
-		return np.geomspace(-3, 5, 10)
+		return np.linspace(-3, 5, 10)
 	if target == 'n_TF':
 		return np.geomspace(1, 1000, 10)
-	if target == 'switching_rate':
+	if target == 'switching_ratio':
 		return np.geomspace(0.01, 10, 10)
 	if target == 'diffusion':
 		return np.geomspace(0.5, 5, 10)
@@ -160,6 +165,28 @@ def get_run_vars(target):
 		return np.geomspace(1e-7, 1e-3, 10)
 	if target == 'local_volume':
 		return np.geomspace(0.5e-4, 5e-4, 10)
+
+
+# returns set variable for simulation
+def get_set_value(target):
+	if target == 'n_flanks':
+		return 100
+	if target == 'core_affinity':
+		return 1e-7
+	if target == 'koff_slope':
+		return 0.203
+	if target == 'koff_intercept':
+		return 0.414
+	if target == 'n_TF':
+		return 1
+	if target == 'switching_ratio':
+		return 0.5
+	if target == 'diffusion':
+		return 1
+	if target == 'DNA_concentration':
+		return 5e-5
+	if target == 'local_volume':
+		return 1e-4
 
 
 # initializes storage for first passage and occupancy arrays

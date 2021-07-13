@@ -21,7 +21,7 @@ def main():
 	args = parser.parse_args()
 	factor = np.geomspace(1e-3, 1, num=10)
 
-	if args.target in ['simulation', 'simulation_mutated']:
+	if args.target in ['simulation', 'simulation_mutated', 'simulation_strong']:
 		factor = np.geomspace(1e-4, 10)
 		simulation_plot(args.target, args.run_num, factor)
 	else:
@@ -114,8 +114,13 @@ def simulation_plot(target, run_num, factor):
 					  color='C2', capsize=10)
 
 	# highlight repeat and random regions for affinity ratios
-	l5 = plt.axvspan(9e-3, 11e-3, color='black', alpha=0.3)
-	l6 = plt.axvspan(9e-2, 11e-2, color='red', alpha=0.3)
+	ratio = 1
+	if target == 'simulation_mutated':
+		ratio = 10
+	elif target == 'simulation_strong':
+		ratio = 1/10
+	l5 = plt.axvspan(9e-3*ratio, 11e-3*ratio, color='black', alpha=0.3)
+	l6 = plt.axvspan(9e-2*ratio, 11e-2*ratio, color='red', alpha=0.3)
 	ax1.set_ylabel('mean occupancy (# TFs)', fontsize=20)
 	ax1.tick_params(labelsize=14)
 
@@ -126,7 +131,7 @@ def simulation_plot(target, run_num, factor):
 			   loc='upper left')
 
 	fig.tight_layout()
-	plt.savefig(target + '/simulation_results_' + str(run_num) + '.pdf', dpi=300)
+	plt.savefig(target + '/' + target + '_results_' + str(run_num) + '.pdf', dpi=300)
 
 
 # plots heatmap for data across affinity ratios

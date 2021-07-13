@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 import tqdm
 import matplotlib.pyplot as plt
+import scipy.linalg
 
 '''
 This file contains functions to run a gillespie simulation for TF search with or 
@@ -57,6 +58,10 @@ def main():
 		simulation(factors, args.run_num, args.y0)
 	if args.target == 'simulation_mutated':
 		factors = np.geomspace(1e-4, 10)
+		core_affinity = 1e-6
+		simulation(factors, args.run_num, args.y0, core_affinity)
+	if args.target == 'simulation_strong':
+		factors = np.geomspace(1e-4, 10)
 		core_affinity = 1e-8
 		simulation(factors, args.run_num, args.y0, core_affinity)
 
@@ -65,6 +70,8 @@ def main():
 		one_simulation(args.target, args.y0)
 	if args.target == 'mfpt_simulation':
 		mfpt_simulation(args.target, args.run_num, args.y0)
+	if args.target == 'steady_state':
+		steady_state(args.target)
 
 	print('Run completed')
 
@@ -455,10 +462,30 @@ def mfpt_simulation(target, run_num, y0):
 	plot_mfpt(rand_fpt, rpt_fpt, run_num, target)
 
 
+def steady_state():
+	k_array_rpt = get_k_array(REPEAT_FACTOR)
+	k_array_rand = get_k_array(RANDOM_FACTOR)
+
+	for k_array in [k_array_rand, k_array_rpt]:
+		kNL, kLN, kLM, kLF, kML, kMF, kFL, kFM = k_array
+		ss_mat = np.array([
+			[-kNL, kLN, 0, 0],
+			[0, -kLM*5e-5, kML, 0],
+			[0, -kLF*5e-5*100, 0, kFL],
+			[0, 0, -kMF, kFM]
+		])
+		ss_vec = scipy.linalg.null_space(ss_mat) / np.sum(scipy.linalg.null_space(ss_mat))
+		print()
+		print('matrix: ', ss_mat)
+		print('equilibrium vector: ', np.round(ss_vec, 2))
+
+
 ### HELPER FUNCTIONS
 
 
 # computes the fraction of time that the target (or optionally two targets) is occupied
+
+
 def compute_fraction_time_occupied(simulation_data, target_idx, target_idx_2=None):
     target_data = simulation_data[:-1, target_idx]
     if target_idx_2 is not None:

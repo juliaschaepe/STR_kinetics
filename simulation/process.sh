@@ -19,6 +19,7 @@ python3 process.py 100 DNA_concentration -log True
 python3 process.py 100 local_volume -log True
 python3 process.py 100 simulation
 python3 process.py 100 simulation_mutated
+python3 process.py 100 simulation_strong
 cp n_flanks/n_* download/
 cp core_affinity/cor* download/
 cp koff_intercept/koff* download/
@@ -30,4 +31,5 @@ cp DNA_concentration/DNA* download/
 cp local_volume/loc* download/
 cp simulation/simulation_r* download/
 cp simulation_mutated/simulation_m* download/
+cp simulation_strong/simulation_s* download/
 echo 'Job finished'
